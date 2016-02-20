@@ -48,7 +48,7 @@ class RuCenterApi(object):
                        headers={'Authorization': "Bearer %s" % self.token})
             if resp.status_code != 200:
                 raise Exception
-            return resp.text
+            return resp.text.replace("\r\n", "\n") + "\n"
         except:
             die("Can't fetch zone %s" % zone[0], code=3)
 

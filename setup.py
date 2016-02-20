@@ -3,7 +3,7 @@ from os.path import join, dirname
 
 setup(
     name='ru-center-backup',
-    version='1.0',
+    version='1.1',
     url='https://github.com/m-messiah/ru-center-backup',
     license='MIT',
     author='m_messiah',
