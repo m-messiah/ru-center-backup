@@ -1,0 +1,78 @@
+#!/bin/python
+# coding=utf-8
+import xml.etree.ElementTree as Xml
+from os import environ, path
+from sys import stderr, argv
+
+from requests import get, post
+
+__author__ = 'm_messiah'
+
+
+def die(message, code=1):
+    stderr.write(message + "\n")
+    exit(code)
+
+
+class RuCenterApi(object):
+    def __init__(self, api_key, user, password):
+        try:
+            self.url = "https://api.nic.ru/dns-master/"
+            token = post(
+                "https://api.nic.ru/oauth/token",
+                headers={'Authorization': "Basic %s" % api_key},
+                data={'grant_type': 'password',
+                      'username': user,
+                      'password': password,
+                      'scope': 'GET:/dns-master/.+'
+                }
+            )
+            self.token = token.json()['access_token']
+        except:
+            die("Can't fetch token")
+
+    def iter_zones(self):
+        try:
+            resp = get(self.url + 'zones',
+                       headers={'Authorization': "Bearer %s" % self.token})
+            data = Xml.fromstring(resp.content).find('data')
+            for z in data.findall('zone'):
+                if z.get('has-primary') == 'true':
+                    yield z.get('service'), z.get('name')
+        except:
+            die("Can't list zones", code=2)
+
+    def fetch_zone(self, zone):
+        try:
+            resp = get(self.url + 'services/%s/zones/%s' % zone,
+                       headers={'Authorization': "Bearer %s" % self.token})
+            if resp.status_code != 200:
+                raise Exception
+            return resp.text
+        except:
+            die("Can't fetch zone %s" % zone[0], code=3)
+
+
+if __name__ == '__main__':
+    try:
+        fetcher = RuCenterApi(environ['RUC_API'],
+                              environ['RUC_USER'],
+                              environ['RUC_PASS'])
+    except KeyError:
+        die("Usage: ru-center-backup <out_dir>\n"
+            "While you need to set environment variables:\n"
+            "RUC_API=base64(api_username:api_password)\n"
+            "RUC_USER=<username of RU-Center user>\n"
+            "RUC_PASS=<password of RU-Center user (admin or tech)\n", code=1)
+
+    else:
+        for zone in fetcher.iter_zones():
+            if len(argv) > 1:
+                try:
+                    with open(path.join(argv[1], zone[1]), 'w') as zone_file:
+                        zone_file.write(fetcher.fetch_zone(zone))
+                except IOError:
+                    die("Can't write zone %s to file" % zone[1])
+            else:
+                print(fetcher.fetch_zone(zone))
+                print("\n;==========\n")

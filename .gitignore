@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.idea/
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+sdist/
+*.egg-info/
+.installed.cfg
+*.egg
+# Sphinx documentation
+docs/_build/
+MANIFEST
+out/
